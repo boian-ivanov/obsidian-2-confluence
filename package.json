@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "rollup -c --watch",
     "build": "rollup -c",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "vitest run"
   },
   "author": "",
   "license": "MIT",
@@ -20,7 +21,8 @@
     "obsidian": "^1.5.12",
     "rollup": "^4.27.2",
     "tslib": "^2.7.0",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "markdown-it": "^14.1.0"

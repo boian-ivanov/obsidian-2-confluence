@@ -66,7 +66,8 @@ export default class ObsidianToConfluencePlugin extends Plugin {
       new Notice("Sync complete.");
     } catch (error) {
       console.error("Confluence sync failed", error);
-      new Notice("Sync failed. Check console for details.");
+      const reason = error instanceof Error ? error.message : String(error);
+      new Notice(`Sync failed: ${reason.slice(0, 300)}`);
     }
   }
 
@@ -81,7 +82,8 @@ export default class ObsidianToConfluencePlugin extends Plugin {
     const linkedContent = await this.resolveWikiLinks(withImages, file, client);
     const html = convertMarkdownToConfluence(linkedContent, {
       convertWikiLinks: false,
-      handleEmbedsAsText: true
+      handleEmbedsAsText: true,
+      mermaidExtensionKey: this.settings.mermaidExtensionKey
     });
     const htmlWithImages = this.replaceImagePlaceholders(html, attachments);
 

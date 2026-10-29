@@ -10,6 +10,7 @@ export interface ConfluenceSettings {
   pageIdFrontmatterKey: string;
   parentPageIdFrontmatterKey: string;
   convertWikiLinks: boolean;
+  mermaidExtensionKey: string;
 }
 
 export const DEFAULT_SETTINGS: ConfluenceSettings = {
@@ -20,7 +21,8 @@ export const DEFAULT_SETTINGS: ConfluenceSettings = {
   parentPageId: "",
   pageIdFrontmatterKey: "confluence-page-id",
   parentPageIdFrontmatterKey: "confluence-parent-page-id",
-  convertWikiLinks: true
+  convertWikiLinks: true,
+  mermaidExtensionKey: ""
 };
 
 export class ConfluenceSettingTab extends PluginSettingTab {
@@ -137,6 +139,21 @@ export class ConfluenceSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.convertWikiLinks)
           .onChange(async (value) => {
             this.plugin.settings.convertWikiLinks = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Extension key for the diagram macro")
+      .setDesc(
+        "Optional extension key of the app macro that renders Mermaid code blocks, placed above each one when set."
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("Example: abc123/def456/static/diagram")
+          .setValue(this.plugin.settings.mermaidExtensionKey)
+          .onChange(async (value) => {
+            this.plugin.settings.mermaidExtensionKey = value.trim();
             await this.plugin.saveSettings();
           })
       );

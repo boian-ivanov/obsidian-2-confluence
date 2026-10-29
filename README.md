@@ -7,6 +7,8 @@ Sync the active note from Obsidian to Confluence using the REST API. The plugin 
 - Update existing pages by frontmatter page ID or by title lookup.
 - Create new pages under an optional parent page.
 - Store Confluence page ID back into frontmatter.
+- Fenced code blocks become Confluence code macros with their language.
+- Optional Mermaid diagrams: mermaid code blocks get a diagram macro above them.
 
 ## Setup
 1. Install dependencies: `npm install`
@@ -25,6 +27,13 @@ Sync the active note from Obsidian to Confluence using the REST API. The plugin 
 1. Open the note you want to sync.
 2. Open the Command Palette and run `Sync active note to Confluence`.
 3. On success, the plugin writes the Confluence page ID back to frontmatter.
+
+## Code blocks and Mermaid diagrams
+Confluence storage format ignores `<pre><code>`, so fenced blocks are written as `code` macros (language kept; `ts`, `js`, `sh`, `zsh`, `yml` are aliased).
+
+Confluence Cloud cannot render Mermaid on its own. Install a Marketplace Mermaid app that renders "from a code block on a page", then set **Extension key for the diagram macro** in the plugin settings. Every ```` ```mermaid ```` block is then written as the macro followed by its code block. With the setting empty, mermaid blocks are plain code blocks.
+
+To find the key, insert the app's macro on any page and read `extensionKey` from the page's ADF, e.g. `GET /wiki/api/v2/pages/{id}?body-format=atlas_doc_format`. It looks like `<app-id>/<environment-id>/static/<macro-name>`.
 
 ## Getting Confluence Details
 ### Space key
@@ -47,6 +56,7 @@ Sync the active note from Obsidian to Confluence using the REST API. The plugin 
 - Confluence base URL should include `/wiki` for Confluence Cloud (e.g. `https://your-domain.atlassian.net/wiki`).
 
 ## Troubleshooting
+- A failed sync shows the error message in the notice. Network requests use Obsidian's `requestUrl`, so they do not appear in the DevTools Network tab.
 - 404 errors usually mean the base URL is wrong or the page ID/space key is invalid. The base URL should be the site root (include `/wiki` for Cloud) and must not include `/rest/api`.
 - If you set `confluence-page-id`, make sure the page exists and you have access; otherwise remove it to force create.
 
