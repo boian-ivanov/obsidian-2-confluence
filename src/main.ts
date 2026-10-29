@@ -1,5 +1,6 @@
 import { normalizePath, Notice, Plugin, TFile } from "obsidian";
 import { ConfluenceClient } from "./confluence";
+import { parseWikiLink, rewriteLinks } from "./links";
 import { convertMarkdownToConfluence } from "./markdown";
 import {
   ConfluenceSettingTab,
@@ -205,7 +206,7 @@ export default class ObsidianToConfluencePlugin extends Plugin {
       }
 
       let updated = line.replace(/!\[\[([^\]]+)\]\]/g, (match, inner) => {
-        const { baseTarget } = this.parseWikiLink(inner);
+        const { baseTarget } = parseWikiLink(inner);
         if (!baseTarget) {
           return match;
         }
@@ -329,98 +330,9 @@ export default class ObsidianToConfluencePlugin extends Plugin {
       return markdown;
     }
 
-    const regex = /\[\[([^\]]+)\]\]/g;
-    const occurrences: Array<{
-      full: string;
-      inner: string;
-      start: number;
-      end: number;
-      target: string;
-      label: string;
-      baseTarget: string;
-    }> = [];
-    const targets = new Set<string>();
-
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(markdown)) !== null) {
-      const start = match.index;
-      if (start > 0 && markdown[start - 1] === "!") {
-        continue;
-      }
-
-      const inner = match[1];
-      const { target, label, baseTarget } = this.parseWikiLink(inner);
-      if (!baseTarget) {
-        continue;
-      }
-
-      occurrences.push({
-        full: match[0],
-        inner,
-        start,
-        end: start + match[0].length,
-        target,
-        label,
-        baseTarget
-      });
-      targets.add(baseTarget);
-    }
-
-    if (!occurrences.length) {
-      return markdown;
-    }
-
-    const resolved = new Map<string, string | null>();
-    const resolvedEntries = await Promise.all(
-      Array.from(targets).map(async (baseTarget) => {
-        const url = await this.resolveConfluenceUrlForTarget(
-          baseTarget,
-          sourceFile,
-          client
-        );
-        return [baseTarget, url] as const;
-      })
+    return rewriteLinks(markdown, (target) =>
+      this.resolveConfluenceUrlForTarget(target, sourceFile, client)
     );
-
-    resolvedEntries.forEach(([baseTarget, url]) => {
-      resolved.set(baseTarget, url);
-    });
-
-    let output = "";
-    let lastIndex = 0;
-    for (const occurrence of occurrences) {
-      output += markdown.slice(lastIndex, occurrence.start);
-      const url = resolved.get(occurrence.baseTarget);
-      if (url) {
-        output += `[${occurrence.label}](${url})`;
-      } else {
-        output += occurrence.full;
-      }
-      lastIndex = occurrence.end;
-    }
-    output += markdown.slice(lastIndex);
-
-    return output;
-  }
-
-  private parseWikiLink(inner: string): {
-    target: string;
-    label: string;
-    baseTarget: string;
-  } {
-    const parts = inner.split("|");
-    const rawTarget = (parts[0] || "").trim();
-    const label = (parts[1] || rawTarget).trim();
-    const baseTarget = rawTarget
-      .split("#")[0]
-      .split("^")[0]
-      .trim();
-
-    return {
-      target: rawTarget,
-      label: label || rawTarget,
-      baseTarget
-    };
   }
 
   private async resolveConfluenceUrlForTarget(
@@ -436,7 +348,7 @@ export default class ObsidianToConfluencePlugin extends Plugin {
       }
     }
 
-    const title = targetFile ? targetFile.basename : baseTarget;
+    const title = targetFile ? targetFile.basename : baseTarget.replace(/\.md$/i, "");
     const existing = await client.findPageByTitle(this.settings.spaceKey, title);
     if (existing) {
       return client.getPageUrl(existing.id);
@@ -465,6 +377,24 @@ export default class ObsidianToConfluencePlugin extends Plugin {
     );
     if (cached) {
       return cached;
+    }
+
+    const folder = sourceFile.parent?.path;
+    if (folder && folder !== "/") {
+      const segments: string[] = [];
+      for (const part of `${folder}/${linkTarget}`.split("/")) {
+        if (part === "..") {
+          segments.pop();
+        } else if (part && part !== ".") {
+          segments.push(part);
+        }
+      }
+      const relative = this.app.vault.getAbstractFileByPath(
+        normalizePath(segments.join("/"))
+      );
+      if (relative instanceof TFile) {
+        return relative;
+      }
     }
 
     return null;

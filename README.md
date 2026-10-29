@@ -50,7 +50,7 @@ To find the key, insert the app's macro on any page and read `extensionKey` from
 - From API: `GET .../wiki/rest/api/content?title=Page%20Title&spaceKey=SPACE` and read `results[0].id`.
 
 ## Notes
-- Wiki links are converted to Confluence URLs when possible (via frontmatter page ID or title match). Unresolved wiki links are left as `[[...]]`.
+- Links to other notes are rewritten in the published page only (the Obsidian note is not modified). Wiki links (`[[Note]]`, `[[Note|alias]]`, `[[Note#Heading]]`) and relative Markdown links to notes (`[text](Note.md)`, `[text](<My Note.md>)`) become links to the note's Confluence page, found via its frontmatter page ID or a title match in the space. Heading and block anchors are dropped. Links inside code, embeds, external links and notes that are not in Confluence yet are left as written; sync the target note first, then re-sync.
 - Non-image embeds (`![[file]]`) are converted to plain text markers; attachments other than images are not uploaded yet.
 - Image embeds (`![[image.png]]`) and Markdown image links to local files are uploaded as Confluence attachments and embedded in the page.
 - Confluence base URL should include `/wiki` for Confluence Cloud (e.g. `https://your-domain.atlassian.net/wiki`).
